@@ -1,0 +1,3178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Caducidades</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --accent: #0f3b4a;
+            --light-accent: #184a5f;
+            --danger: #c33;
+            --success: #0a6;
+            --warning: #e65100;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: var(--accent);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 0;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: var(--light-accent);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background: #a22;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #084;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background: #c44100;
+        }
+        
+        .search-filter {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .search-filter input, .search-filter select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            min-width: 200px;
+            font-size: 14px;
+        }
+        
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: var(--accent);
+            border-bottom: 2px solid var(--light-accent);
+            padding-bottom: 10px;
+        }
+        
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .family-tag {
+            background: #e6f7ff;
+            color: #0070c0;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .status-expired {
+            background: #ffebee;
+            color: var(--danger);
+        }
+        
+        .status-warning {
+            background: #fff8e1;
+            color: var(--warning);
+        }
+        
+        .status-ok {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        th, td {
+            border: 1px solid #e6eef2;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #f3f6f8;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f1f7fb;
+        }
+        
+        .editor {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--accent);
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(15, 59, 74, 0.1);
+        }
+        
+        .inline-form {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .inline-form .form-group {
+            flex: 1;
+            margin-bottom: 0;
+            min-width: 150px;
+        }
+        
+        .codes-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        .code-pill {
+            background: #eef;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .code-pill span {
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .code-pill span:hover {
+            color: var(--danger);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-card h3 {
+            margin-top: 0;
+            color: var(--accent);
+            font-size: 16px;
+        }
+        
+        .dashboard-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+        
+        .editor-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .ranges-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .range-item {
+            background: #f3f6f8;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .range-item input {
+            margin: 0;
+        }
+        
+        .lot-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 2fr auto;
+            gap: 15px;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .lot-row input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .codes-display {
+            font-size: 13px; 
+            color: #666; 
+            margin-top: 6px;
+            background: #f8f8f8;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .file-upload-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        
+        .file-format-info {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .file-format-info ul {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .file-format-info li {
+            margin-bottom: 8px;
+        }
+        
+        .file-input-wrapper {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px dashed #ccc;
+            border-radius: 6px;
+            min-width: 300px;
+        }
+        
+        .import-summary {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #e8f5e9;
+        }
+        
+        .import-summary.error {
+            background: #ffebee;
+        }
+        
+        .auto-save-info {
+            background: #e3f2fd;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .auto-save-info .icon {
+            font-size: 24px;
+            color: #1565c0;
+        }
+        
+        .save-notification {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: var(--success);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-title {
+            color: var(--accent);
+            border-bottom: 2px solid var(--light-accent);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        
+        /* Nuevos estilos para el modal de guardado */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .format-selector {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f9f9f9;
+        }
+        
+        .format-selector label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .format-selector input[type="radio"] {
+            margin-right: 10px;
+        }
+        
+        /* Estilos para la sección de surtido */
+        .surtido-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        
+        .surtido-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+        
+        .surtido-list {
+            margin-top: 20px;
+        }
+        
+        .surtido-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .surtido-item:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .surtido-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .surtido-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #e8f5e9;
+        }
+        
+        .surtido-result.error {
+            background: #ffebee;
+        }
+        
+        .surtido-result.warning {
+            background: #fff8e1;
+        }
+        
+        .lote-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .cantidad-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .cantidad-inputs .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .surtido-nota {
+            margin-top: 15px;
+        }
+        
+        .surtido-historial {
+            margin-top: 30px;
+        }
+        
+        .historial-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .historial-item:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .historial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .historial-fecha {
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .historial-destino {
+            font-style: italic;
+            color: #666;
+        }
+        
+        /* Nuevos estilos para gestión de destinos */
+        .destinos-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        
+        .destinos-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .destino-pill {
+            background: #eef;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .destino-pill span {
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .destino-pill span:hover {
+            color: var(--danger);
+        }
+        
+        .destino-autocomplete {
+            position: relative;
+        }
+        
+        .destino-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .destino-suggestion {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .destino-suggestion:hover {
+            background: #f5f5f5;
+        }
+        
+        .destino-suggestion:last-child {
+            border-bottom: none;
+        }
+        
+        @media (max-width: 768px) {
+            .header-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .header-controls .btn {
+                margin-bottom: 8px;
+            }
+            
+            .search-filter {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .product-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .inline-form {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .inline-form .form-group {
+                width: 100%;
+            }
+            
+            .lot-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .modal-buttons {
+                flex-direction: column;
+            }
+            
+            .surtido-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .surtido-item {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .cantidad-inputs {
+                flex-direction: column;
+            }
+            
+            .historial-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Control de Caducidades</h1>
+        <div class="header-controls">
+            <button class="btn" onclick="showSection('dashboard')">Inicio</button>
+            <button class="btn" onclick="showSection('productos')">Productos</button>
+            <button class="btn" onclick="showSection('surtido')">Surtido</button>
+            <button class="btn" onclick="showSection('reportes')">Reportes</button>
+            <button class="btn" onclick="showSection('historialSurtido')">Historial Surtido</button>
+            <button class="btn" onclick="showSection('importar')">Importar</button>
+            <button class="btn" onclick="showSection('configuracion')">Configuración</button>
+            <button class="btn btn-success" onclick="showSaveOptions()">Guardar en Excel</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Dashboard Section -->
+        <section id="dashboard">
+            <h2 class="section-title">Inicio</h2>
+            <div class="auto-save-info">
+                <div class="icon">💾</div>
+                <div>
+                    <strong>Sistema de guardado único</strong><br>
+                    Use el botón "Guardar en Excel" para guardar todos los datos en un único archivo Excel.
+                    Guarde este archivo en una carpeta específica para mantener sus datos seguros.
+                </div>
+            </div>
+            <div class="dashboard-cards" id="dashboardCards"></div>
+        </section>
+
+        <!-- Productos Section -->
+        <section id="productos" class="hidden">
+            <h2 class="section-title">Gestión de Productos</h2>
+            <div class="controls">
+                <button class="btn btn-success" onclick="nuevoProducto()">+ Nuevo Producto</button>
+            </div>
+            
+            <!-- Editor de Productos en la parte superior -->
+            <div id="editorPanel" class="editor hidden">
+                <div class="editor-header">
+                    <h3>Editar / Crear producto</h3>
+                    <div class="editor-actions">
+                        <button class="btn btn-success" onclick="saveProduct()">Guardar</button>
+                        <button class="btn btn-danger" onclick="deleteProduct()" id="deleteBtn">Eliminar</button>
+                        <button class="btn" onclick="closeEditor()">Cerrar</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Códigos de referencia</label>
+                    <div class="codes-list" id="codesList"></div>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <input id="newCodeInput" placeholder="Agregar código...">
+                        </div>
+                        <button class="btn" onclick="addCode()">Agregar</button>
+                    </div>
+                </div>
+                
+                <div class="inline-form">
+                    <div class="form-group">
+                        <label>Familia</label>
+                        <select id="familySelect"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva familia</label>
+                        <input id="newFamilyInput" placeholder="Agregar familia...">
+                    </div>
+                    <button class="btn" onclick="addFamily()">Agregar</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <input id="editDesc" type="text">
+                </div>
+                
+                <h4>Lotes (puedes agregar y editar varios)</h4>
+                <div id="lotsContainer"></div>
+                
+                <div class="inline-form">
+                    <div class="form-group">
+                        <label>Cajas</label>
+                        <input id="lot_cajas" type="number" placeholder="Cajas">
+                    </div>
+                    <div class="form-group">
+                        <label>Piezas</label>
+                        <input id="lot_piezas" type="number" placeholder="Piezas">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha caducidad</label>
+                        <input id="lot_fecha" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha contado</label>
+                        <input id="lot_contado" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label>Notas</label>
+                        <input id="lot_notas" type="text" placeholder="Notas internas">
+                    </div>
+                    <button class="btn" onclick="addLot()">Agregar lote</button>
+                </div>
+            </div>
+            
+            <div class="search-filter">
+                <div>
+                    <label for="familyFilter">Filtrar por familia:</label>
+                    <select id="familyFilter" onchange="renderInventory()">
+                        <option value="">Todas las familias</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="globalSearch">Buscar:</label>
+                    <input id="globalSearch" type="text" placeholder="Código or descripción..." oninput="renderInventory()">
+                </div>
+                <div>
+                    <label>&nbsp;</label>
+                    <button class="btn" onclick="clearFamilyFilter()">Quitar filtro</button>
+                </div>
+            </div>
+            
+            <div id="inventoryList"></div>
+            <div class="small">Total de productos: <span id="totalCount">0</span></div>
+        </section>
+
+        <!-- Nueva Sección de Surtido -->
+        <section id="surtido" class="hidden">
+            <h2 class="section-title">Surtido de Mercancía</h2>
+            
+            <div class="surtido-container">
+                <h3>Agregar productos al surtido</h3>
+                
+                <div class="surtido-form">
+                    <div class="form-group">
+                        <label for="surtidoProductSearch">Buscar producto</label>
+                        <input type="text" id="surtidoProductSearch" placeholder="Código o descripción..." oninput="filterSurtidoProducts()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="surtidoProductSelect">Producto</label>
+                        <select id="surtidoProductSelect" onchange="updateSurtidoProductInfo()">
+                            <option value="">Seleccionar producto...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="cantidad-inputs">
+                        <div class="form-group">
+                            <label for="surtidoCajas">Cajas</label>
+                            <input type="number" id="surtidoCajas" min="0" value="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="surtidoPiezas">Piezas</label>
+                            <input type="number" id="surtidoPiezas" min="0" value="0">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="addToSurtidoList()">Agregar al surtido</button>
+                </div>
+                
+                <div id="surtidoProductInfo" class="codes-display">
+                    Seleccione un producto para ver su información
+                </div>
+                
+                <div class="surtido-nota">
+                    <div class="form-group destino-autocomplete">
+                        <label for="surtidoDestino">Destino del surtido</label>
+                        <input type="text" id="surtidoDestino" placeholder="Escriba o seleccione un destino..." 
+                               oninput="filterDestinos()" onfocus="showDestinoSuggestions()">
+                        <div class="destino-suggestions" id="destinoSuggestions"></div>
+                    </div>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <input type="text" id="nuevoDestinoInput" placeholder="Nuevo destino...">
+                        </div>
+                        <button class="btn" onclick="agregarDestino()">Agregar Destino</button>
+                    </div>
+                </div>
+                
+                <div class="surtido-list" id="surtidoList">
+                    <!-- Aquí se mostrarán los productos agregados al surtido -->
+                </div>
+                
+                <div class="surtido-actions">
+                    <button class="btn btn-success" onclick="processSurtido()">Procesar Surtido</button>
+                    <button class="btn" onclick="exportSurtidoToExcel()">Exportar Lista de Surtido</button>
+                    <button class="btn btn-danger" onclick="clearSurtidoList()">Limpiar Lista</button>
+                </div>
+                
+                <div id="surtidoResult"></div>
+            </div>
+            
+            <div class="destinos-container">
+                <h3>Gestión de Destinos</h3>
+                <p>Administre la lista de destinos disponibles para los surtidos:</p>
+                
+                <div class="destinos-list" id="destinosList">
+                    <!-- Aquí se mostrarán los destinos disponibles -->
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-danger" onclick="limpiarDestinos()">Eliminar Todos los Destinos</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Instrucciones</h3>
+                <p>1. Busque un producto por código de barras o descripción</p>
+                <p>2. Seleccione el producto de la lista desplegable</p>
+                <p>3. Ingrese la cantidad a surtir (cajas y/o piezas)</p>
+                <p>4. Seleccione o agregue un destino del surtido</p>
+                <p>5. Haga clic en "Agregar al surtido"</p>
+                <p>6. Repita para todos los productos necesarios</p>
+                <p>7. Haga clic en "Procesar Surtido" para restar del inventario</p>
+                <p><strong>Nota:</strong> El sistema surtirá primero de los lotes con fecha de caducidad más próxima</p>
+            </div>
+        </section>
+
+        <!-- Reportes Section -->
+        <section id="reportes" class="hidden">
+            <h2 class="section-title">Reportes de Caducidades</h2>
+            
+            <div class="card">
+                <h3>Filtrar por rango de fechas</h3>
+                <div class="ranges-container" id="rangesContainer"></div>
+                <div class="controls">
+                    <button class="btn" onclick="selectAllRanges()">Seleccionar todo</button>
+                    <button class="btn" onclick="clearRanges()">Limpiar</button>
+                    <button class="btn" onclick="exportReportToExcel()">Exportar Reporte</button>
+                </div>
+            </div>
+            
+            <div id="reportResult" style="margin-top: 20px;"></div>
+        </section>
+
+        <!-- Nueva Sección de Historial de Surtido -->
+        <section id="historialSurtido" class="hidden">
+            <h2 class="section-title">Historial de Surtidos</h2>
+            
+            <div class="card">
+                <h3>Filtrar historial</h3>
+                <div class="search-filter">
+                    <div>
+                        <label for="fechaInicio">Fecha inicio:</label>
+                        <input type="date" id="fechaInicio" onchange="filtrarHistorialSurtido()">
+                    </div>
+                    <div>
+                        <label for="fechaFin">Fecha fin:</label>
+                        <input type="date" id="fechaFin" onchange="filtrarHistorialSurtido()">
+                    </div>
+                    <div>
+                        <label for="filtroDestino">Destino:</label>
+                        <input type="text" id="filtroDestino" placeholder="Filtrar por destino..." oninput="filtrarHistorialSurtido()">
+                    </div>
+                    <div>
+                        <label>&nbsp;</label>
+                        <button class="btn" onclick="limpiarFiltrosHistorial()">Limpiar filtros</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="exportHistorialSurtidoToExcel()">Exportar Historial a Excel</button>
+            </div>
+            
+            <div id="historialSurtidoList" class="surtido-historial">
+                <!-- Aquí se mostrará el historial de surtidos -->
+            </div>
+        </section>
+
+        <!-- Importar Section -->
+        <section id="importar" class="hidden">
+            <h2 class="section-title">Importar Productos desde Excel</h2>
+            
+            <div class="file-upload-container">
+                <h3>Cargar archivo Excel</h3>
+                
+                <div class="format-selector">
+                    <label>
+                        <input type="radio" name="importFormat" value="basic" checked onchange="updateImportInstructions()">
+                        Formato básico (Código, Descripción, Familia)
+                    </label>
+                    <label>
+                        <input type="radio" name="importFormat" value="full" onchange="updateImportInstructions()">
+                        Formato completo (Código, Descripción, Familia, Cajas, Piezas, Fecha Caducidad, Fecha Contado, Notas)
+                    </label>
+                </div>
+                
+                <div class="file-format-info" id="formatInfo">
+                    <p><strong>Formato requerido para el archivo Excel:</strong></p>
+                    <ul>
+                        <li>El archivo debe tener las columnas: <strong>Código</strong>, <strong>Descripción</strong> y <strong>Familia</strong></li>
+                        <li>La primera fila debe contener los encabezados de columna</li>
+                        <li>Los códigos deben estar en la primera columna (A)</li>
+                        <li>Las descripciones en la segunda columna (B)</li>
+                        <li>Las familias en la tercera columna (C)</li>
+                    </ul>
+                    <p>Los productos importados se agregarán a los existentes, sin eliminarlos.</p>
+                </div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls">
+                    <button class="btn btn-success" onclick="importExcel()">Importar</button>
+                </div>
+                
+                <div id="importResult"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="showSection('productos')">Volver a Productos</button>
+                <button class="btn btn-warning" onclick="clearAllProducts()">Eliminar Todos los Productos</button>
+                <button class="btn btn-success" onclick="showSaveOptions()">Guardar en Excel</button>
+            </div>
+        </section>
+
+        <!-- Configuración Section -->
+        <section id="configuracion" class="hidden">
+            <h2 class="section-title">Configuración</h2>
+
+            <div class="card">
+                <h3>Uso de almacenamiento</h3>
+                <p>Revise cuánta información está almacenada en el sistema.</p>
+                <button class="btn btn-success" onclick="checkStorageUsage()">Ver uso de almacenamiento</button>
+                <div id="storageUsageResult" style="margin-top: 15px; font-weight: bold; color: var(--accent);"></div>
+            </div>
+
+            <div class="card">
+                <h3>Datos</h3>
+                <p><strong>Creado por:</strong> Alexis Aldo Ilizaliturri Alarid</p>
+                <p><strong>Departamento:</strong> ALFA INVENTARIOS</p>
+                <p><strong>Empresa:</strong> SUPER RIVERA</p>
+                <img src="logo-super-rivera1.jpg" alt="Logo Super Rivera" style="max-width: 300px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; padding: 10px; background: white;">
+            </div>
+        </section>
+
+    </div>
+
+    <div class="save-notification" id="saveNotification">
+        Datos guardados exitosamente en Control_Caducidades.xlsx
+    </div>
+
+    <!-- Modal para opciones de guardado -->
+    <div class="modal" id="saveModal">
+        <div class="modal-content">
+            <h3>Guardar en Excel</h3>
+            <p>¿Cómo desea guardar el archivo?</p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="saveToExcel('new')">Guardar como nuevo</button>
+                <button class="btn btn-success" onclick="saveToExcel('overwrite')">Sobrescribir existente</button>
+                <button class="btn btn-danger" onclick="closeSaveModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Base de datos de productos
+        let products = [
+            {
+                "codes": ["7509546686776"],
+                "descripcion": "CAPRICE 200ML SH CONT/CASPA",
+                "familia": "A1 SHAMPOO",
+                "lotes": []
+            },
+            {
+                "codes": ["7509546073033"],
+                "descripcion": "CAPRICE 200ML SH ESP ACTI-CERAM",
+                "familia": "A1 SHAMPOO",
+                "lotes": []
+            },
+            {
+                "codes": ["7509546073040"],
+                "descripcion": "CAPRICE 200ML SH ESP BIOTINA",
+                "familia": "A1 SHAMPOO",
+                "lotes": []
+            }
+        ];
+
+        let currentProductIndex = -1;
+        let editingCodes = [];
+        let editingLots = [];
+        
+        // Variables globales para el surtido
+        let surtidoList = [];
+        let allProductsForSurtido = [];
+        let historialSurtidos = [];
+        let destinos = ['Tienda 1', 'Tienda 2', 'Bodega Central', 'Sucursal Norte', 'Sucursal Sur'];
+
+        // Inicialización
+        window.onload = function() {
+            console.log("Inicializando sistema...");
+            
+            // Cargar datos guardados o usar los predeterminados
+            const savedProducts = localStorage.getItem('products');
+            if (savedProducts) {
+                try {
+                    products = JSON.parse(savedProducts);
+                    console.log("Productos cargados desde localStorage:", products.length);
+                } catch (e) {
+                    console.error("Error al cargar datos guardados:", e);
+                    // Mantener los datos predeterminados si hay error
+                    products = [
+                        {
+                            "codes": ["7509546686776"],
+                            "descripcion": "CAPRICE 200ML SH CONT/CASPA",
+                            "familia": "A1 SHAMPOO",
+                            "lotes": []
+                        },
+                        {
+                            "codes": ["7509546073033"],
+                            "descripcion": "CAPRICE 200ML SH ESP ACTI-CERAM",
+                            "familia": "A1 SHAMPOO",
+                            "lotes": []
+                        },
+                        {
+                            "codes": ["7509546073040"],
+                            "descripcion": "CAPRICE 200ML SH ESP BIOTINA",
+                            "familia": "A1 SHAMPOO",
+                            "lotes": []
+                        }
+                    ];
+                }
+            } else {
+                console.log("No se encontraron productos guardados, usando datos predeterminados");
+            }
+            
+            // Cargar historial de surtidos
+            const savedHistorial = localStorage.getItem('historialSurtidos');
+            if (savedHistorial) {
+                try {
+                    historialSurtidos = JSON.parse(savedHistorial);
+                    console.log("Historial de surtidos cargado:", historialSurtidos.length);
+                } catch (e) {
+                    console.error("Error al cargar historial de surtidos:", e);
+                    historialSurtidos = [];
+                }
+            }
+            
+            // Cargar destinos guardados
+            const savedDestinos = localStorage.getItem('destinosSurtido');
+            if (savedDestinos) {
+                try {
+                    destinos = JSON.parse(savedDestinos);
+                    console.log("Destinos cargados:", destinos.length);
+                } catch (e) {
+                    console.error("Error al cargar destinos:", e);
+                    destinos = ['Tienda 1', 'Tienda 2', 'Bodega Central', 'Sucursal Norte', 'Sucursal Sur'];
+                }
+            }
+            
+            // Inicializar todas las secciones
+            renderDashboard();
+            populateFamilyFilter();
+            populateFamilySelect();
+            renderInventory();
+            renderReports();
+            renderDestinosList();
+            
+            // Mostrar la sección de inicio por defecto
+            showSection('dashboard');
+            
+            console.log("Sistema inicializado correctamente");
+        };
+
+        // Función para actualizar las instrucciones de importación según el formato seleccionado
+        function updateImportInstructions() {
+            const formatInfo = document.getElementById('formatInfo');
+            const format = document.querySelector('input[name="importFormat"]:checked').value;
+            
+            if (format === 'basic') {
+                formatInfo.innerHTML = `
+                    <p><strong>Formato requerido para el archivo Excel:</strong></p>
+                    <ul>
+                        <li>El archivo debe tener las columnas: <strong>Código</strong>, <strong>Descripción</strong> y <strong>Familia</strong></li>
+                        <li>La primera fila debe contener los encabezados de columna</li>
+                        <li>Los códigos deben estar en la primera columna (A)</li>
+                        <li>Las descripciones en la segunda columna (B)</li>
+                        <li>Las familias en la tercera columna (C)</li>
+                    </ul>
+                    <p>Los productos importados se agregarán a los existentes, sin eliminarlos.</p>
+                `;
+            } else {
+                formatInfo.innerHTML = `
+                    <p><strong>Formato requerido para el archivo Excel:</strong></p>
+                    <ul>
+                        <li>El archivo debe tener las columnas: <strong>Código</strong>, <strong>Descripción</strong>, <strong>Familia</strong>, <strong>Cajas</strong>, <strong>Piezas</strong>, <strong>Fecha Caducidad</strong>, <strong>Fecha Contado</strong>, <strong>Notas</strong></li>
+                        <li>La primera fila debe contener los encabezados de columna</li>
+                        <li>Los códigos deben estar en la primera columna (A)</li>
+                        <li>Las descripciones en la segunda columna (B)</li>
+                        <li>Las familias en la tercera columna (C)</li>
+                        <li>Cajas en la cuarta columna (D)</li>
+                        <li>Piezas en la quinta columna (E)</li>
+                        <li>Fecha Caducidad en la sexta columna (F)</li>
+                        <li>Fecha Contado en la séptima columna (G)</li>
+                        <li>Notas en la octava columna (H)</li>
+                    </ul>
+                    <p>Los productos importados se agregarán a los existentes, sin eliminarlos.</p>
+                `;
+            }
+        }
+
+        // Navegación entre secciones
+        function showSection(sectionId) {
+            console.log("Mostrando sección:", sectionId);
+            
+            // Ocultar todas las secciones
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Mostrar la sección seleccionada
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+            
+            // Actualizar la sección si es necesario
+            if (sectionId === 'dashboard') {
+                renderDashboard();
+            } else if (sectionId === 'productos') {
+                renderInventory();
+            } else if (sectionId === 'reportes') {
+                renderReports();
+            } else if (sectionId === 'surtido') {
+                populateSurtidoProductSelect();
+                renderSurtidoList();
+            } else if (sectionId === 'historialSurtido') {
+                renderHistorialSurtido();
+            }
+        }
+
+        // Dashboard
+        function renderDashboard() {
+            const cardsContainer = document.getElementById('dashboardCards');
+            cardsContainer.innerHTML = '';
+            
+            // Calcular productos próximos a caducar en diferentes rangos
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Definir diferentes rangos de fechas
+            const tenDays = new Date(today);
+            tenDays.setDate(today.getDate() + 10);
+            
+            const oneMonth = new Date(today);
+            oneMonth.setMonth(today.getMonth() + 1);
+            
+            const twoMonths = new Date(today);
+            twoMonths.setMonth(today.getMonth() + 2);
+            
+            const threeMonths = new Date(today);
+            threeMonths.setMonth(today.getMonth() + 3);
+            
+            let expiringInTenDaysCount = 0;
+            let expiringInOneMonthCount = 0;
+            let expiringInTwoMonthsCount = 0;
+            let expiringInThreeMonthsCount = 0;
+            let expiredCount = 0;
+            let totalLotes = 0;
+            
+            products.forEach(product => {
+                if (product.lotes && product.lotes.length > 0) {
+                    totalLotes += product.lotes.length;
+                    product.lotes.forEach(lote => {
+                        if (lote.fecha) {
+                            const expirationDate = new Date(lote.fecha);
+                            expirationDate.setHours(0, 0, 0, 0);
+                            
+                            if (expirationDate < today) {
+                                expiredCount++;
+                            } else if (expirationDate <= tenDays) {
+                                expiringInTenDaysCount++;
+                            } else if (expirationDate <= oneMonth) {
+                                expiringInOneMonthCount++;
+                            } else if (expirationDate <= twoMonths) {
+                                expiringInTwoMonthsCount++;
+                            } else if (expirationDate <= threeMonths) {
+                                expiringInThreeMonthsCount++;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            const cards = [
+                { title: 'Total de productos', value: products.length, color: '#0f3b4a' },
+                { title: 'Total de familias', value: [...new Set(products.map(p => p.familia))].length, color: '#1a5d7a' },
+                { title: 'Próximos 1-10 días', value: expiringInTenDaysCount, color: '#e65100' },
+                { title: 'Próximos 1 mes', value: expiringInOneMonthCount, color: '#ff9800' },
+                { title: 'Próximos 2 meses', value: expiringInTwoMonthsCount, color: '#ffa726' },
+                { title: 'Próximos 3 meses', value: expiringInThreeMonthsCount, color: '#ffb74d' },
+                { title: 'Caducados', value: expiredCount, color: '#c33' },
+                { title: 'Total de lotes', value: totalLotes, color: '#2e7d32' }
+            ];
+            
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'dashboard-card';
+                cardEl.innerHTML = `
+                    <h3>${card.title}</h3>
+                    <div class="value" style="color: ${card.color}">${card.value}</div>
+                `;
+                cardsContainer.appendChild(cardEl);
+            });
+        }
+
+        // Inventario - Filtrado
+        function populateFamilyFilter() {
+            const familyFilter = document.getElementById('familyFilter');
+            const families = [...new Set(products.map(p => p.familia))].sort();
+            
+            familyFilter.innerHTML = '<option value="">Todas las familias</option>';
+            families.forEach(family => {
+                const option = document.createElement('option');
+                option.value = family;
+                option.textContent = family;
+                familyFilter.appendChild(option);
+            });
+        }
+
+        function clearFamilyFilter() {
+            document.getElementById('familyFilter').value = '';
+            document.getElementById('globalSearch').value = '';
+            renderInventory();
+        }
+
+        // Función para calcular meses y días entre dos fechas
+        function calculateMonthsAndDays(startDate, endDate) {
+            // Asegurarse de que las fechas sean objetos Date válidos
+            if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+                return { meses: 0, dias: 0 };
+            }
+            
+            // Si la fecha ya pasó, devolver valores negativos
+            if (startDate > endDate) {
+                const diffTime = startDate - endDate;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return { meses: 0, dias: -diffDays };
+            }
+            
+            let meses = 0;
+            let dias = 0;
+            
+            // Calcular meses
+            let tempDate = new Date(startDate);
+            while (tempDate < endDate) {
+                tempDate.setMonth(tempDate.getMonth() + 1);
+                if (tempDate <= endDate) {
+                    meses++;
+                } else {
+                    tempDate.setMonth(tempDate.getMonth() - 1);
+                    break;
+                }
+            }
+            
+            // Calcular días restantes
+            if (tempDate < endDate) {
+                const diffTime = endDate - tempDate;
+                dias = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            }
+            
+            return { meses, dias };
+        }
+
+        // Función para determinar el estado de caducidad
+        function getExpirationStatus(expirationDate) {
+            if (!expirationDate) return '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const expDate = new Date(expirationDate);
+            expDate.setHours(0, 0, 0, 0);
+            
+            const diffTime = expDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                return '<span class="status-badge status-expired">CADUCADO</span>';
+            }
+            
+            // Calcular meses y días restantes
+            const { meses, dias } = calculateMonthsAndDays(today, expDate);
+            
+            let statusText = '';
+            if (meses === 0) {
+                statusText = `${dias} ${dias === 1 ? 'día' : 'días'}`;
+            } else if (dias === 0) {
+                statusText = `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+            } else {
+                statusText = `${meses} ${meses === 1 ? 'mes' : 'meses'} y ${dias} ${dias === 1 ? 'día' : 'días'}`;
+            }
+            
+            if (diffDays <= 7) {
+                return `<span class="status-badge status-warning">PRÓXIMO (${statusText})</span>`;
+            } else if (diffDays <= 30) {
+                return `<span class="status-badge status-warning">EN ${statusText.toUpperCase()}</span>`;
+            } else {
+                return `<span class="status-badge status-ok">${statusText.toUpperCase()}</span>`;
+            }
+        }
+
+        // Inventario - Renderizado
+        
+        function renderInventory() {
+            const inventoryList = document.getElementById('inventoryList');
+            const familyFilter = document.getElementById('familyFilter').value;
+            const searchTerm = document.getElementById('globalSearch').value.toLowerCase();
+
+            // Filtrar productos
+            let filteredProducts = products;
+
+            if (familyFilter) {
+                filteredProducts = filteredProducts.filter(p => p.familia === familyFilter);
+            }
+
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(p => 
+                    (p.codes || []).some(code => String(code).toLowerCase().includes(searchTerm)) ||
+                    (p.descripcion || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Actualizar contador
+            document.getElementById('totalCount').textContent = filteredProducts.length;
+
+            // Renderizar lista
+            inventoryList.innerHTML = '';
+
+            if (filteredProducts.length === 0) {
+                inventoryList.innerHTML = '<div class="card"><p>No se encontraron productos</p></div>';
+                return;
+            }
+
+            filteredProducts.forEach((product) => {
+                const productEl = document.createElement('div');
+                productEl.className = 'card';
+
+                // Encontrar la fecha más próxima a caducar
+                let closestExpiration = null;
+                if (product.lotes && product.lotes.length > 0) {
+                    const today = new Date();
+                    const validDates = product.lotes
+                        .filter(lote => lote.fecha)
+                        .map(lote => new Date(lote.fecha))
+                        .filter(date => !isNaN(date.getTime()));
+
+                    if (validDates.length > 0) {
+                        closestExpiration = new Date(Math.min(...validDates.map(d => d.getTime())));
+                    }
+                }
+
+                const statusBadge = closestExpiration ? getExpirationStatus(closestExpiration.toISOString().split('T')[0]) : '';
+
+                // Obtener el índice real en el array 'products' para que editar apunte al producto correcto
+                const originalIndex = products.indexOf(product);
+
+                productEl.innerHTML = `
+                    <div class="product-header">
+                        <div>
+                            <strong>${product.descripcion || 'Sin descripción'}</strong>
+                            <div class="codes-display">Códigos: ${product.codes.join(', ')}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-top: 10px;">
+                            <span class="family-tag">${product.familia || 'Sin familia'}</span>
+                            ${statusBadge}
+                            <button class="btn" onclick="editProduct(${originalIndex})" style="margin-left: 8px;">Editar</button>
+                        </div>
+                    </div>
+                    ${product.lotes && product.lotes.length > 0 ? `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cajas</th>
+                                    <th>Piezas</th>
+                                    <th>Caducidad</th>
+                                    <th>Contado</th>
+                                    <th>Notas</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${product.lotes.map(lote => `
+                                    <tr>
+                                        <td>${lote.cajas || 0}</td>
+                                        <td>${lote.piezas || 0}</td>
+                                        <td>${lote.fecha || 'N/A'}</td>
+                                        <td>${lote.contado || 'N/A'}</td>
+                                        <td>${lote.notas || ''}</td>
+                                        <td>${lote.fecha ? getExpirationStatus(lote.fecha) : ''}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<p style="color: #666; font-style: italic;">No hay lotes registrados</p>'}
+                `;
+                inventoryList.appendChild(productEl);
+            });
+        }
+
+        // Editor de productos
+        function populateFamilySelect() {
+            const familySelect = document.getElementById('familySelect');
+            const families = [...new Set(products.map(p => p.familia))].sort();
+            
+            familySelect.innerHTML = '<option value="">Seleccionar familia</option>';
+            families.forEach(family => {
+                const option = document.createElement('option');
+                option.value = family;
+                option.textContent = family;
+                familySelect.appendChild(option);
+            });
+        }
+
+        function nuevoProducto() {
+            currentProductIndex = -1;
+            editingCodes = [];
+            editingLots = [];
+            
+            document.getElementById('editDesc').value = '';
+            document.getElementById('familySelect').value = '';
+            document.getElementById('codesList').innerHTML = '';
+            document.getElementById('lotsContainer').innerHTML = '';
+            
+            document.getElementById('editorPanel').classList.remove('hidden');
+            document.getElementById('deleteBtn').style.display = 'none';
+            
+            // Desplazarse al editor
+            document.getElementById('editorPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function editProduct(index) {
+            currentProductIndex = index;
+            const product = products[index];
+            
+            editingCodes = [...product.codes];
+            editingLots = product.lotes ? [...product.lotes] : [];
+            
+            document.getElementById('editDesc').value = product.descripcion || '';
+            document.getElementById('familySelect').value = product.familia || '';
+            
+            // Render codes
+            const codesList = document.getElementById('codesList');
+            codesList.innerHTML = '';
+            editingCodes.forEach(code => {
+                const codePill = document.createElement('div');
+                codePill.className = 'code-pill';
+                codePill.innerHTML = `
+                    ${code}
+                    <span onclick="removeCode('${code.replace(/'/g, "\\'")}')">×</span>
+                `;
+                codesList.appendChild(codePill);
+            });
+            
+            // Render lots
+            renderLots();
+            
+            document.getElementById('editorPanel').classList.remove('hidden');
+            document.getElementById('deleteBtn').style.display = 'block';
+            
+            // Desplazarse al editor
+            document.getElementById('editorPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeEditor() {
+            document.getElementById('editorPanel').classList.add('hidden');
+        }
+
+        function addCode() {
+            const newCodeInput = document.getElementById('newCodeInput');
+            const code = newCodeInput.value.trim();
+            
+            if (code && !editingCodes.includes(code)) {
+                editingCodes.push(code);
+                
+                const codesList = document.getElementById('codesList');
+                const codePill = document.createElement('div');
+                codePill.className = 'code-pill';
+                codePill.innerHTML = `
+                    ${code}
+                    <span onclick="removeCode('${code.replace(/'/g, "\\'")}')">×</span>
+                `;
+                codesList.appendChild(codePill);
+                
+                newCodeInput.value = '';
+            }
+        }
+
+        function removeCode(code) {
+            editingCodes = editingCodes.filter(c => c !== code);
+            
+            const codesList = document.getElementById('codesList');
+            codesList.innerHTML = '';
+            editingCodes.forEach(c => {
+                const codePill = document.createElement('div');
+                codePill.className = 'code-pill';
+                codePill.innerHTML = `
+                    ${c}
+                    <span onclick="removeCode('${c.replace(/'/g, "\\'")}')">×</span>
+                `;
+                codesList.appendChild(codePill);
+            });
+        }
+
+        function addFamily() {
+            const newFamilyInput = document.getElementById('newFamilyInput');
+            const family = newFamilyInput.value.trim();
+            
+            if (family) {
+                const familySelect = document.getElementById('familySelect');
+                
+                // Check if family already exists
+                let exists = false;
+                for (let i = 0; i < familySelect.options.length; i++) {
+                    if (familySelect.options[i].value === family) {
+                        exists = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    const option = document.createElement('option');
+                    option.value = family;
+                    option.textContent = family;
+                    familySelect.appendChild(option);
+                }
+                
+                familySelect.value = family;
+                newFamilyInput.value = '';
+            }
+        }
+
+        function addLot() {
+            const cajas = document.getElementById('lot_cajas').value;
+            const piezas = document.getElementById('lot_piezas').value;
+            const fecha = document.getElementById('lot_fecha').value;
+            const contado = document.getElementById('lot_contado').value;
+            const notas = document.getElementById('lot_notas').value;
+            
+            if (!fecha) {
+                alert('La fecha de caducidad es obligatoria');
+                return;
+            }
+            
+            editingLots.push({
+                cajas: parseInt(cajas) || 0,
+                piezas: parseInt(piezas) || 0,
+                fecha: fecha,
+                contado: contado,
+                notas: notas
+            });
+            
+            // Clear form
+            document.getElementById('lot_cajas').value = '';
+            document.getElementById('lot_piezas').value = '';
+            document.getElementById('lot_fecha').value = '';
+            document.getElementById('lot_contado').value = '';
+            document.getElementById('lot_notas').value = '';
+            
+            renderLots();
+        }
+
+        // Función para renderizar lotes con campos editables
+        function renderLots() {
+            const lotsContainer = document.getElementById('lotsContainer');
+            lotsContainer.innerHTML = '';
+            
+            if (editingLots.length === 0) {
+                lotsContainer.innerHTML = '<p style="color: #666; font-style: italic;">No hay lotes agregados</p>';
+                return;
+            }
+            
+            editingLots.forEach((lot, index) => {
+                const lotRow = document.createElement('div');
+                lotRow.className = 'lot-row';
+                
+                lotRow.innerHTML = `
+                    <div>
+                        <label>Cajas</label>
+                        <input type="number" value="${lot.cajas || 0}" onchange="updateLotField(${index}, 'cajas', this.value)">
+                    </div>
+                    <div>
+                        <label>Piezas</label>
+                        <input type="number" value="${lot.piezas || 0}" onchange="updateLotField(${index}, 'piezas', this.value)">
+                    </div>
+                    <div>
+                        <label>Caducidad</label>
+                        <input type="date" value="${lot.fecha || ''}" onchange="updateLotField(${index}, 'fecha', this.value)">
+                    </div>
+                    <div>
+                        <label>Contado</label>
+                        <input type="date" value="${lot.contado || ''}" onchange="updateLotField(${index}, 'contado', this.value)">
+                    </div>
+                    <div>
+                        <label>Notas</label>
+                        <input type="text" value="${lot.notas || ''}" onchange="updateLotField(${index}, 'notas', this.value)">
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" onclick="removeLot(${index})">Eliminar</button>
+                    </div>
+                `;
+                lotsContainer.appendChild(lotRow);
+            });
+        }
+
+        // Función: Actualizar campo de lote
+        function updateLotField(index, field, value) {
+            if (index >= 0 && index < editingLots.length) {
+                if (field === 'cajas' || field === 'piezas') {
+                    editingLots[index][field] = parseInt(value) || 0;
+                } else {
+                    editingLots[index][field] = value;
+                }
+            }
+        }
+
+        function removeLot(index) {
+            editingLots.splice(index, 1);
+            renderLots();
+        }
+
+        function saveProduct() {
+            const descripcion = document.getElementById('editDesc').value.trim();
+            const familia = document.getElementById('familySelect').value;
+            
+            if (!descripcion) {
+                alert('La descripción es obligatoria');
+                return;
+            }
+            
+            if (!familia) {
+                alert('La familia es obligatoria');
+                return;
+            }
+            
+            if (editingCodes.length === 0) {
+                alert('Debe agregar al menos un código');
+                return;
+            }
+            
+            const productData = {
+                codes: editingCodes,
+                descripcion: descripcion,
+                familia: familia,
+                lotes: editingLots
+            };
+            
+            if (currentProductIndex === -1) {
+                // Nuevo producto
+                products.push(productData);
+            } else {
+                // Editar producto existente
+                products[currentProductIndex] = productData;
+            }
+            
+            // Guardar en localStorage
+            localStorage.setItem('products', JSON.stringify(products));
+            
+            closeEditor();
+            renderInventory();
+            populateFamilyFilter();
+            populateFamilySelect();
+            renderDashboard();
+            
+            // Mostrar notificación para guardar en Excel
+            showSaveNotification('Control_Caducidades.xlsx');
+        }
+
+        function deleteProduct() {
+            if (currentProductIndex === -1) return;
+            
+            if (confirm('¿Está seguro de eliminar este producto?')) {
+                products.splice(currentProductIndex, 1);
+                
+                // Guardar en localStorage
+                localStorage.setItem('products', JSON.stringify(products));
+                
+                closeEditor();
+                renderInventory();
+                populateFamilyFilter();
+                populateFamilySelect();
+                renderDashboard();
+                
+                // Mostrar notificación para guardar en Excel
+                showSaveNotification('Control_Caducidades.xlsx');
+            }
+        }
+
+        // Reportes - Renderizado de opciones
+        function renderReports() {
+            const rangesContainer = document.getElementById('rangesContainer');
+            rangesContainer.innerHTML = '';
+            
+            const ranges = [
+                { id: '7days', label: 'Próximos 1-7 días' },
+                { id: '15days', label: 'Próximos 15 días' },
+                { id: '1month', label: '1 mes' },
+                { id: '2months', label: '2 meses' },
+                { id: '3months', label: '3 meses' },
+                { id: '4months', label: '4 meses' },
+                { id: '5months', label: '5 meses' },
+                { id: '6months', label: '6 meses' },
+                { id: '7to9months', label: '7 a 9 meses' },
+                { id: '1year', label: '1 año en adelante' },
+                { id: 'expired', label: 'Caducados' }
+            ];
+            
+            ranges.forEach(range => {
+                const rangeItem = document.createElement('div');
+                rangeItem.className = 'range-item';
+                rangeItem.innerHTML = `
+                    <input type="checkbox" id="${range.id}" onchange="generateReport()">
+                    <label for="${range.id}">${range.label}</label>
+                `;
+                rangesContainer.appendChild(rangeItem);
+            });
+        }
+
+        function selectAllRanges() {
+            document.querySelectorAll('#rangesContainer input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            generateReport();
+        }
+
+        function clearRanges() {
+            document.querySelectorAll('#rangesContainer input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            generateReport();
+        }
+
+        // Reportes - Generación
+        function generateReport() {
+            const reportResult = document.getElementById('reportResult');
+            const selectedRanges = [];
+            
+            // Obtener rangos seleccionados
+            document.querySelectorAll('#rangesContainer input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedRanges.push(checkbox.id);
+            });
+            
+            if (selectedRanges.length === 0) {
+                reportResult.innerHTML = '<div class="card"><p>Seleccione al menos un rango para generar el reporte</p></div>';
+                return;
+            }
+            
+            // Calcular fechas de referencia
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+            
+            const sevenDays = new Date(today);
+            sevenDays.setDate(today.getDate() + 7);
+            
+            const fifteenDays = new Date(today);
+            fifteenDays.setDate(today.getDate() + 15);
+            
+            const oneMonth = new Date(today);
+            oneMonth.setMonth(today.getMonth() + 1);
+            
+            const twoMonths = new Date(today);
+            twoMonths.setMonth(today.getMonth() + 2);
+            
+            const threeMonths = new Date(today);
+            threeMonths.setMonth(today.getMonth() + 3);
+            
+            const fourMonths = new Date(today);
+            fourMonths.setMonth(today.getMonth() + 4);
+            
+            const fiveMonths = new Date(today);
+            fiveMonths.setMonth(today.getMonth() + 5);
+            
+            const sixMonths = new Date(today);
+            sixMonths.setMonth(today.getMonth() + 6);
+            
+            const nineMonths = new Date(today);
+            nineMonths.setMonth(today.getMonth() + 9);
+            
+            const oneYear = new Date(today);
+            oneYear.setFullYear(today.getFullYear() + 1);
+            
+            // Filtrar productos según los rangos seleccionados
+            let filteredProducts = [];
+            
+            products.forEach(product => {
+                if (product.lotes && product.lotes.length > 0) {
+                    product.lotes.forEach(lote => {
+                        if (lote.fecha) {
+                            const expirationDate = new Date(lote.fecha);
+                            expirationDate.setHours(0, 0, 0, 0);
+                            
+                            let includeInReport = false;
+
+                            // Verificar si el lote cumple con alguno de los rangos seleccionados
+                            if (selectedRanges.includes('expired') && expirationDate < today) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('7days') && expirationDate >= today && expirationDate <= sevenDays) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('15days') && expirationDate > sevenDays && expirationDate <= fifteenDays) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('1month') && expirationDate > fifteenDays && expirationDate <= oneMonth) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('2months') && expirationDate > oneMonth && expirationDate <= twoMonths) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('3months') && expirationDate > twoMonths && expirationDate <= threeMonths) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('4months') && expirationDate > threeMonths && expirationDate <= fourMonths) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('5months') && expirationDate > fourMonths && expirationDate <= fiveMonths) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('6months') && expirationDate > fiveMonths && expirationDate <= sixMonths) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('7to9months') && expirationDate > sixMonths && expirationDate <= nineMonths) {
+                                includeInReport = true;
+                            } else if (selectedRanges.includes('1year') && expirationDate > nineMonths) {
+                                includeInReport = true;
+                            }
+                            
+                            if (includeInReport) {
+                                // Clonar el producto para no modificar el original
+                                const productCopy = {...product};
+                                productCopy.loteEspecifico = {...lote};
+                                filteredProducts.push(productCopy);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Mostrar resultados
+            if (filteredProducts.length === 0) {
+                reportResult.innerHTML = '<div class="card"><p>No se encontraron productos en los rangos seleccionados</p></div>';
+                return;
+            }
+            
+            let reportHTML = `
+                <div class="card">
+                    <h3>Resultados del Reporte (${filteredProducts.length} productos)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Familia</th>
+                                <th>Cajas</th>
+                                <th>Piezas</th>
+                                <th>Caducidad</th>
+                                <th>Contado</th>
+                                <th>Notas</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            filteredProducts.forEach(product => {
+                // MODIFICACIÓN: Mostrar solo el primer código en lugar de todos
+                const primerCodigo = product.codes.length > 0 ? product.codes[0] : '';
+                
+                reportHTML += `
+                    <tr>
+                        <td>${primerCodigo}</td>  <!-- Cambiado aquí -->
+                        <td>${product.descripcion}</td>
+                        <td>${product.familia}</td>
+                        <td>${product.loteEspecifico.cajas || 0}</td>
+                        <td>${product.loteEspecifico.piezas || 0}</td>
+                        <td>${product.loteEspecifico.fecha || 'N/A'}</td>
+                        <td>${product.loteEspecifico.contado || 'N/A'}</td>
+                        <td>${product.loteEspecifico.notas || ''}</td>
+                        <td>${product.loteEspecifico.fecha ? getExpirationStatus(product.loteEspecifico.fecha) : ''}</td>
+                    </tr>
+                `;
+            });
+            
+            reportHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            reportResult.innerHTML = reportHTML;
+        }
+
+        function exportReportToExcel() {
+            // Primero generar el reporte actual
+            generateReport();
+            
+            // Obtener los datos de la tabla de reportes
+            const reportTable = document.querySelector('#reportResult table');
+            if (!reportTable) {
+                alert('No hay datos para exportar');
+                return;
+            }
+            
+            // Convertir la tabla a un libro de Excel
+            const wb = XLSX.utils.table_to_book(reportTable);
+            
+            // Guardar el archivo
+            XLSX.writeFile(wb, 'Reporte_Caducidades.xlsx');
+        }
+
+        // Importar desde Excel
+        function importExcel() {
+            const fileInput = document.getElementById('excelFileInput');
+            const file = fileInput.files[0];
+            const format = document.querySelector('input[name="importFormat"]:checked').value;
+            
+            if (!file) {
+                alert('Por favor, seleccione un archivo Excel');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Obtener la primera hoja
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                
+                let jsonData;
+                if (format === 'basic') {
+                    // Formato básico: Código, Descripción, Familia
+                    jsonData = XLSX.utils.sheet_to_json(worksheet, { header: ['codigo', 'descripcion', 'familia'] });
+                    
+                    // Eliminar la primera fila si son encabezados
+                    if (jsonData.length > 0 && jsonData[0].codigo === 'Código') {
+                        jsonData.shift();
+                    }
+                    
+                    let importedCount = 0;
+                    let updatedCount = 0;
+                    
+                    // Procesar cada fila
+                    jsonData.forEach(row => {
+                        if (row.codigo && row.descripcion && row.familia) {
+                            const code = String(row.codigo).trim();
+                            const descripcion = String(row.descripcion).trim();
+                            const familia = String(row.familia).trim();
+                            
+                            // Verificar si el producto ya existe por código
+                            const existingIndex = products.findIndex(p => p.codes.includes(code));
+                            
+                            if (existingIndex !== -1) {
+                                // Actualizar producto existente
+                                products[existingIndex].descripcion = descripcion;
+                                products[existingIndex].familia = familia;
+                                updatedCount++;
+                            } else {
+                                // Crear nuevo producto
+                                products.push({
+                                    codes: [code],
+                                    descripcion: descripcion,
+                                    familia: familia,
+                                    lotes: []
+                                });
+                                importedCount++;
+                            }
+                        }
+                    });
+                    
+                    // Mostrar resultados
+                    const importResult = document.getElementById('importResult');
+                    importResult.innerHTML = `
+                        <div class="import-summary">
+                            <h4>Importación completada (Formato básico)</h4>
+                            <p>Productos nuevos: ${importedCount}</p>
+                            <p>Productos actualizados: ${updatedCount}</p>
+                            <p>Total de productos en sistema: ${products.length}</p>
+                        </div>
+                    `;
+                } else {
+                    // Formato completo: Código, Descripción, Familia, Cajas, Piezas, Fecha Caducidad, Fecha Contado, Notas
+                    jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                        header: ['codigo', 'descripcion', 'familia', 'cajas', 'piezas', 'fechaCaducidad', 'fechaContado', 'notas'] 
+                    });
+                    
+                    // Eliminar la primera fila si son encabezados
+                    if (jsonData.length > 0 && jsonData[0].codigo === 'Código') {
+                        jsonData.shift();
+                    }
+                    
+                    let importedCount = 0;
+                    let updatedCount = 0;
+                    let lotesCount = 0;
+                    
+                    // Procesar cada fila
+                    jsonData.forEach(row => {
+                        if (row.codigo && row.descripcion && row.familia) {
+                            const code = String(row.codigo).trim();
+                            const descripcion = String(row.descripcion).trim();
+                            const familia = String(row.familia).trim();
+                            
+                            // Verificar si el producto ya existe por código
+                            const existingIndex = products.findIndex(p => p.codes.includes(code));
+                            
+                            // Preparar datos del lote
+                            const lote = {
+                                cajas: parseInt(row.cajas) || 0,
+                                piezas: parseInt(row.piezas) || 0,
+                                fecha: row.fechaCaducidad || '',
+                                contado: row.fechaContado || '',
+                                notas: row.notas || ''
+                            };
+                            
+                            if (existingIndex !== -1) {
+                                // Actualizar producto existente
+                                products[existingIndex].descripcion = descripcion;
+                                products[existingIndex].familia = familia;
+                                
+                                // Agregar lote si tiene fecha de caducidad
+                                if (lote.fecha) {
+                                    if (!products[existingIndex].lotes) {
+                                        products[existingIndex].lotes = [];
+                                    }
+                                    products[existingIndex].lotes.push(lote);
+                                    lotesCount++;
+                                }
+                                
+                                updatedCount++;
+                            } else {
+                                // Crear nuevo producto
+                                const newProduct = {
+                                    codes: [code],
+                                    descripcion: descripcion,
+                                    familia: familia,
+                                    lotes: []
+                                };
+                                
+                                // Agregar lote si tiene fecha de caducidad
+                                if (lote.fecha) {
+                                    newProduct.lotes.push(lote);
+                                    lotesCount++;
+                                }
+                                
+                                products.push(newProduct);
+                                importedCount++;
+                            }
+                        }
+                    });
+                    
+                    // Mostrar resultados
+                    const importResult = document.getElementById('importResult');
+                    importResult.innerHTML = `
+                        <div class="import-summary">
+                            <h4>Importación completada (Formato completo)</h4>
+                            <p>Productos nuevos: ${importedCount}</p>
+                            <p>Productos actualizados: ${updatedCount}</p>
+                            <p>Lotes importados: ${lotesCount}</p>
+                            <p>Total de productos en sistema: ${products.length}</p>
+                        </div>
+                    `;
+                }
+                
+                // Guardar en localStorage
+                localStorage.setItem('products', JSON.stringify(products));
+                
+                // Actualizar la interfaz
+                populateFamilyFilter();
+                populateFamilySelect();
+                renderInventory();
+                renderDashboard();
+                
+                // Mostrar notificación para guardar en Excel
+                showSaveNotification('Control_Caducidades.xlsx');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function clearAllProducts() {
+            if (confirm('¿Está seguro de eliminar TODOS los productos? Esta acción no se puede deshacer.')) {
+                products = [];
+                localStorage.setItem('products', JSON.stringify(products));
+                
+                // Actualizar la interfaz
+                populateFamilyFilter();
+                populateFamilySelect();
+                renderInventory();
+                renderDashboard();
+                
+                // Mostrar notificación para guardar en Excel
+                showSaveNotification('Control_Caducidades.xlsx');
+            }
+        }
+
+        
+        // Función para comprobar el uso de almacenamiento local
+        function checkStorageUsage() {
+            let usedBytes = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    usedBytes += ((localStorage[key].length + key.length) * 2);
+                }
+            }
+            const usedKB = (usedBytes / 1024).toFixed(2);
+            const usedMB = (usedBytes / (1024*1024)).toFixed(2);
+            const limitMB = 5; // límite estimado para la mayoría de navegadores
+            const percent = ((usedMB / limitMB) * 100).toFixed(1);
+            
+            document.getElementById('storageUsageResult').innerText =
+                `Uso actual: ${usedKB} KB (${usedMB} MB) / ${limitMB} MB (~${percent}% del límite)`;
+        }
+
+        // Función para mostrar el modal de opciones de guardado
+        function showSaveOptions() {
+            document.getElementById('saveModal').style.display = 'flex';
+        }
+        
+        // Función para cerrar el modal de opciones de guardado
+        function closeSaveModal() {
+            document.getElementById('saveModal').style.display = 'none';
+        }
+        
+        // Función modificada para guardar en Excel con opciones
+        function saveToExcel(mode) {
+            closeSaveModal();
+            
+            // Preparar datos para exportar
+            const dataToExport = [];
+            
+            // Encabezados
+            dataToExport.push(['Código', 'Descripción', 'Familia', 'Cajas', 'Piezas', 'Fecha Caducidad', 'Fecha Contado', 'Notas']);
+            
+            // Datos de productos
+            products.forEach(product => {
+                if (product.lotes && product.lotes.length > 0) {
+                    product.lotes.forEach(lote => {
+                        dataToExport.push([
+                            product.codes.join(', '),
+                            product.descripcion,
+                            product.familia,
+                            lote.cajas || 0,
+                            lote.piezas || 0,
+                            lote.fecha || '',
+                            lote.contado || '',
+                            lote.notas || ''
+                        ]);
+                    });
+                } else {
+                    dataToExport.push([
+                        product.codes.join(', '),
+                        product.descripcion,
+                        product.familia,
+                        '',
+                        '',
+                        '',
+                        '',
+                        ''
+                    ]);
+                }
+            });
+            
+            // Crear libro de trabajo
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(dataToExport);
+            
+            // Añadir hoja al libro
+            XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+            
+            // Determinar el nombre del archivo según el modo
+            let fileName = 'Control_Caducidades.xlsx';
+            if (mode === 'new') {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                fileName = `Control_Caducidades_${timestamp}.xlsx`;
+            }
+            
+            // Guardar archivo
+            XLSX.writeFile(wb, fileName);
+            
+            // Mostrar notificación
+            showSaveNotification(fileName);
+        }
+        
+        // Función para mostrar notificación de guardado
+        function showSaveNotification(fileName) {
+            const notification = document.getElementById('saveNotification');
+            notification.textContent = `Datos guardados exitosamente en ${fileName}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // ============================================
+        // FUNCIONES PARA LA SECCIÓN DE SURTIDO
+        // ============================================
+        
+        // Función para poblar el selector de productos en la sección de surtido
+        function populateSurtidoProductSelect() {
+            const productSelect = document.getElementById('surtidoProductSelect');
+            productSelect.innerHTML = '<option value="">Seleccionar producto...</option>';
+            
+            // Guardar referencia a todos los productos para búsqueda
+            allProductsForSurtido = [...products];
+            
+            products.forEach((product, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${product.descripcion} (${product.codes[0]})`;
+                productSelect.appendChild(option);
+            });
+        }
+        
+        // Función para filtrar productos en la sección de surtido
+        function filterSurtidoProducts() {
+            const searchInput = document.getElementById('surtidoProductSearch');
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const productSelect = document.getElementById('surtidoProductSelect');
+            
+            if (searchTerm === '') {
+                populateSurtidoProductSelect();
+                return;
+            }
+            
+            // Filtrar productos por código o descripción
+            const filteredProducts = products.filter(product => 
+                (product.codes || []).some(code => String(code).toLowerCase().includes(searchTerm)) ||
+                (product.descripcion || '').toLowerCase().includes(searchTerm)
+            );
+            
+            productSelect.innerHTML = '<option value="">Seleccionar producto...</option>';
+            
+            filteredProducts.forEach((product, index) => {
+                // Encontrar el índice original en el array products
+                const originalIndex = products.indexOf(product);
+                const option = document.createElement('option');
+                option.value = originalIndex;
+                option.textContent = `${product.descripcion} (${product.codes[0]})`;
+                productSelect.appendChild(option);
+            });
+            
+            // Si solo hay un resultado, seleccionarlo automáticamente
+            if (filteredProducts.length === 1) {
+                productSelect.value = products.indexOf(filteredProducts[0]);
+                updateSurtidoProductInfo();
+            }
+        }
+        
+        // Función para actualizar la información del producto seleccionado
+        function updateSurtidoProductInfo() {
+            const productSelect = document.getElementById('surtidoProductSelect');
+            const productInfo = document.getElementById('surtidoProductInfo');
+            const selectedIndex = productSelect.value;
+            
+            if (selectedIndex === "") {
+                productInfo.textContent = "Seleccione un producto para ver su información";
+                return;
+            }
+            
+            const product = products[selectedIndex];
+            let totalCajas = 0;
+            let totalPiezas = 0;
+            
+            if (product.lotes && product.lotes.length > 0) {
+                product.lotes.forEach(lote => {
+                    totalCajas += parseInt(lote.cajas) || 0;
+                    totalPiezas += parseInt(lote.piezas) || 0;
+                });
+            }
+            
+            productInfo.innerHTML = `
+                <strong>${product.descripcion}</strong><br>
+                Código: ${product.codes.join(', ')}<br>
+                Familia: ${product.familia}<br>
+                Existencias: ${totalCajas} cajas, ${totalPiezas} piezas<br>
+                Lotes disponibles: ${product.lotes ? product.lotes.length : 0}
+            `;
+        }
+        
+        // Función para agregar un producto a la lista de surtido
+        function addToSurtidoList() {
+            const productSelect = document.getElementById('surtidoProductSelect');
+            const cajasInput = document.getElementById('surtidoCajas');
+            const piezasInput = document.getElementById('surtidoPiezas');
+            
+            const selectedIndex = productSelect.value;
+            const cajas = parseInt(cajasInput.value) || 0;
+            const piezas = parseInt(piezasInput.value) || 0;
+            
+            if (selectedIndex === "") {
+                alert("Por favor, seleccione un producto");
+                return;
+            }
+            
+            if (cajas === 0 && piezas === 0) {
+                alert("Por favor, ingrese al menos una cantidad en cajas o piezas");
+                return;
+            }
+            
+            const product = products[selectedIndex];
+            
+            // Verificar si ya existe en la lista de surtido
+            const existingIndex = surtidoList.findIndex(item => item.productIndex == selectedIndex);
+            
+            if (existingIndex !== -1) {
+                // Actualizar cantidad existente
+                surtidoList[existingIndex].cajas += cajas;
+                surtidoList[existingIndex].piezas += piezas;
+            } else {
+                // Agregar nuevo elemento
+                surtidoList.push({
+                    productIndex: parseInt(selectedIndex),
+                    descripcion: product.descripcion,
+                    codigo: product.codes[0],
+                    familia: product.familia,
+                    cajas: cajas,
+                    piezas: piezas
+                });
+            }
+            
+            // Actualizar la lista visual
+            renderSurtidoList();
+            
+            // Limpiar formulario
+            cajasInput.value = 0;
+            piezasInput.value = 0;
+        }
+        
+        // Función para renderizar la lista de surtido
+        function renderSurtidoList() {
+            const surtidoListElement = document.getElementById('surtidoList');
+            
+            if (surtidoList.length === 0) {
+                surtidoListElement.innerHTML = '<p style="color: #666; font-style: italic;">No hay productos en la lista de surtido</p>';
+                return;
+            }
+            
+            let html = '<h4>Productos en lista de surtido</h4>';
+            
+            surtidoList.forEach((item, index) => {
+                html += `
+                    <div class="surtido-item">
+                        <div>
+                            <strong>${item.descripcion}</strong>
+                            <div class="lote-info">Código: ${item.codigo} | Familia: ${item.familia}</div>
+                        </div>
+                        <div>
+                            <label>Cajas:</label>
+                            <input type="number" value="${item.cajas}" min="0" onchange="updateSurtidoQuantity(${index}, 'cajas', this.value)">
+                        </div>
+                        <div>
+                            <label>Piezas:</label>
+                            <input type="number" value="${item.piezas}" min="0" onchange="updateSurtidoQuantity(${index}, 'piezas', this.value)">
+                        </div>
+                        <div>
+                            <label>Estado:</label>
+                            <div>${getSurtidoStatus(item.productIndex, item.cajas, item.piezas)}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-danger" onclick="removeFromSurtidoList(${index})">Eliminar</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            surtidoListElement.innerHTML = html;
+        }
+        
+        // Función para obtener el estado de surtido de un producto
+        function getSurtidoStatus(productIndex, cajas, piezas) {
+            const product = products[productIndex];
+            let totalCajas = 0;
+            let totalPiezas = 0;
+            
+            if (product.lotes && product.lotes.length > 0) {
+                product.lotes.forEach(lote => {
+                    totalCajas += parseInt(lote.cajas) || 0;
+                    totalPiezas += parseInt(lote.piezas) || 0;
+                });
+            }
+            
+            if (totalCajas >= cajas && totalPiezas >= piezas) {
+                return '<span style="color: green;">Suficiente</span>';
+            } else if (totalCajas > 0 || totalPiezas > 0) {
+                return `<span style="color: orange;">Insuficiente (${totalCajas} cajas, ${totalPiezas} piezas disponibles)</span>`;
+            } else {
+                return '<span style="color: red;">Sin existencias</span>';
+            }
+        }
+        
+        // Función para actualizar la cantidad de un producto en la lista de surtido
+        function updateSurtidoQuantity(index, type, newQuantity) {
+            const cantidad = parseInt(newQuantity);
+            
+            if (isNaN(cantidad) || cantidad < 0) {
+                alert("Por favor, ingrese una cantidad válida");
+                return;
+            }
+            
+            if (type === 'cajas') {
+                surtidoList[index].cajas = cantidad;
+            } else {
+                surtidoList[index].piezas = cantidad;
+            }
+            
+            renderSurtidoList();
+        }
+        
+        // Función para eliminar un producto de la lista de surtido
+        function removeFromSurtidoList(index) {
+            surtidoList.splice(index, 1);
+            renderSurtidoList();
+        }
+        
+        // Función para limpiar la lista de surtido
+        function clearSurtidoList() {
+            if (surtidoList.length === 0) {
+                return;
+            }
+            
+            if (confirm("¿Está seguro de que desea limpiar la lista de surtido?")) {
+                surtidoList = [];
+                renderSurtidoList();
+            }
+        }
+        
+        // ============================================
+        // FUNCIONES PARA GESTIÓN DE DESTINOS
+        // ============================================
+        
+        // Función para renderizar la lista de destinos
+        function renderDestinosList() {
+            const destinosList = document.getElementById('destinosList');
+            destinosList.innerHTML = '';
+            
+            if (destinos.length === 0) {
+                destinosList.innerHTML = '<p style="color: #666; font-style: italic;">No hay destinos configurados</p>';
+                return;
+            }
+            
+            destinos.forEach((destino, index) => {
+                const destinoPill = document.createElement('div');
+                destinoPill.className = 'destino-pill';
+                destinoPill.innerHTML = `
+                    ${destino}
+                    <span onclick="eliminarDestino(${index})">×</span>
+                `;
+                destinosList.appendChild(destinoPill);
+            });
+        }
+        
+        // Función para agregar un nuevo destino
+        function agregarDestino() {
+            const nuevoDestinoInput = document.getElementById('nuevoDestinoInput');
+            const destino = nuevoDestinoInput.value.trim();
+            
+            if (destino && !destinos.includes(destino)) {
+                destinos.push(destino);
+                nuevoDestinoInput.value = '';
+                
+                // Guardar en localStorage
+                localStorage.setItem('destinosSurtido', JSON.stringify(destinos));
+                
+                // Actualizar la lista visual
+                renderDestinosList();
+                
+                // Mostrar notificación
+                showSaveNotification('Destino agregado correctamente');
+            } else if (destinos.includes(destino)) {
+                alert('Este destino ya existe en la lista');
+            }
+        }
+        
+        // Función para eliminar un destino
+        function eliminarDestino(index) {
+            if (confirm(`¿Está seguro de eliminar el destino "${destinos[index]}"?`)) {
+                destinos.splice(index, 1);
+                
+                // Guardar en localStorage
+                localStorage.setItem('destinosSurtido', JSON.stringify(destinos));
+                
+                // Actualizar la lista visual
+                renderDestinosList();
+                
+                // Mostrar notificación
+                showSaveNotification('Destino eliminado correctamente');
+            }
+        }
+        
+        // Función para limpiar todos los destinos
+        function limpiarDestinos() {
+            if (destinos.length === 0) {
+                return;
+            }
+            
+            if (confirm('¿Está seguro de eliminar TODOS los destinos? Esta acción no se puede deshacer.')) {
+                destinos = [];
+                
+                // Guardar en localStorage
+                localStorage.setItem('destinosSurtido', JSON.stringify(destinos));
+                
+                // Actualizar la lista visual
+                renderDestinosList();
+                
+                // Mostrar notificación
+                showSaveNotification('Todos los destinos han sido eliminados');
+            }
+        }
+        
+        // Función para filtrar destinos en el autocomplete
+        function filterDestinos() {
+            const destinoInput = document.getElementById('surtidoDestino');
+            const suggestionsContainer = document.getElementById('destinoSuggestions');
+            const searchTerm = destinoInput.value.toLowerCase().trim();
+            
+            suggestionsContainer.innerHTML = '';
+            
+            if (searchTerm === '') {
+                suggestionsContainer.style.display = 'none';
+                return;
+            }
+            
+            const filteredDestinos = destinos.filter(destino => 
+                destino.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filteredDestinos.length === 0) {
+                suggestionsContainer.style.display = 'none';
+                return;
+            }
+            
+            filteredDestinos.forEach(destino => {
+                const suggestion = document.createElement('div');
+                suggestion.className = 'destino-suggestion';
+                suggestion.textContent = destino;
+                suggestion.onclick = function() {
+                    destinoInput.value = destino;
+                    suggestionsContainer.style.display = 'none';
+                };
+                suggestionsContainer.appendChild(suggestion);
+            });
+            
+            suggestionsContainer.style.display = 'block';
+        }
+        
+        // Función para mostrar sugerencias de destinos
+        function showDestinoSuggestions() {
+            const destinoInput = document.getElementById('surtidoDestino');
+            const suggestionsContainer = document.getElementById('destinoSuggestions');
+            
+            if (destinoInput.value === '') {
+                // Mostrar todos los destinos si el campo está vacío
+                suggestionsContainer.innerHTML = '';
+                
+                destinos.forEach(destino => {
+                    const suggestion = document.createElement('div');
+                    suggestion.className = 'destino-suggestion';
+                    suggestion.textContent = destino;
+                    suggestion.onclick = function() {
+                        destinoInput.value = destino;
+                        suggestionsContainer.style.display = 'none';
+                    };
+                    suggestionsContainer.appendChild(suggestion);
+                });
+                
+                if (destinos.length > 0) {
+                    suggestionsContainer.style.display = 'block';
+                }
+            } else {
+                // Filtrar según lo que ya haya escrito
+                filterDestinos();
+            }
+        }
+        
+        // Ocultar sugerencias al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            const destinoInput = document.getElementById('surtidoDestino');
+            const suggestionsContainer = document.getElementById('destinoSuggestions');
+            
+            if (e.target !== destinoInput) {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+
+        // ============================================
+        // FUNCIONES MODIFICADAS PARA USAR DESTINOS
+        // ============================================
+        
+        // Función principal para procesar el surtido (modificada para usar destinos)
+        function processSurtido() {
+            if (surtidoList.length === 0) {
+                alert("No hay productos en la lista de surtido");
+                return;
+            }
+            
+            const destinoInput = document.getElementById('surtidoDestino');
+            const destino = destinoInput.value.trim();
+            
+            if (!destino) {
+                alert("Por favor, seleccione o ingrese un destino del surtido");
+                return;
+            }
+            
+            // Si el destino no existe en la lista, preguntar si desea agregarlo
+            if (!destinos.includes(destino)) {
+                if (confirm(`¿Desea agregar "${destino}" a la lista de destinos?`)) {
+                    destinos.push(destino);
+                    localStorage.setItem('destinosSurtido', JSON.stringify(destinos));
+                    renderDestinosList();
+                }
+            }
+            
+            let resultHTML = '<h4>Resultado del Surtido</h4>';
+            let allProcessed = true;
+            let processedItems = [];
+            
+            // Procesar cada producto en la lista de surtido
+            surtidoList.forEach(item => {
+                const product = products[item.productIndex];
+                let remainingCajas = item.cajas;
+                let remainingPiezas = item.piezas;
+                let lotesUsados = [];
+                
+                // Ordenar lotes por fecha de caducidad (más próximos primero)
+                const sortedLotes = [...(product.lotes || [])].sort((a, b) => {
+                    if (!a.fecha) return 1;
+                    if (!b.fecha) return -1;
+                    return new Date(a.fecha) - new Date(b.fecha);
+                });
+                
+                // Procesar cada lote hasta satisfacer la cantidad requerida
+                for (let i = 0; i < sortedLotes.length && (remainingCajas > 0 || remainingPiezas > 0); i++) {
+                    const lote = sortedLotes[i];
+                    const cajasEnLote = parseInt(lote.cajas) || 0;
+                    const piezasEnLote = parseInt(lote.piezas) || 0;
+                    
+                    if (cajasEnLote > 0 || piezasEnLote > 0) {
+                        // Calcular cuánto tomar de este lote
+                        const cajasATomar = Math.min(remainingCajas, cajasEnLote);
+                        const piezasATomar = Math.min(remainingPiezas, piezasEnLote);
+                        
+                        // Actualizar el lote
+                        lote.cajas = Math.max(0, cajasEnLote - cajasATomar);
+                        lote.piezas = Math.max(0, piezasEnLote - piezasATomar);
+                        
+                        // Registrar el lote usado si se tomó algo
+                        if (cajasATomar > 0 || piezasATomar > 0) {
+                            lotesUsados.push({
+                                fecha: lote.fecha,
+                                cajasTomadas: cajasATomar,
+                                piezasTomadas: piezasATomar
+                            });
+                        }
+                        
+                        remainingCajas -= cajasATomar;
+                        remainingPiezas -= piezasATomar;
+                    }
+                }
+                
+                // Eliminar lotes vacíos
+                product.lotes = (product.lotes || []).filter(lote => {
+                    const cajas = parseInt(lote.cajas) || 0;
+                    const piezas = parseInt(lote.piezas) || 0;
+                    return cajas > 0 || piezas > 0;
+                });
+                
+                // Registrar el resultado
+                processedItems.push({
+                    descripcion: product.descripcion,
+                    codigo: product.codes[0],
+                    familia: product.familia,
+                    cajasSolicitadas: item.cajas,
+                    piezasSolicitadas: item.piezas,
+                    cajasProcesadas: item.cajas - remainingCajas,
+                    piezasProcesadas: item.piezas - remainingPiezas,
+                    cajasNoProcesadas: remainingCajas,
+                    piezasNoProcesadas: remainingPiezas,
+                    lotesUsados: lotesUsados
+                });
+                
+                if (remainingCajas > 0 || remainingPiezas > 0) {
+                    allProcessed = false;
+                }
+            });
+            
+            // Guardar en el historial
+            const surtidoHistorial = {
+                fecha: new Date().toISOString(),
+                destino: destino,
+                items: processedItems,
+                completado: allProcessed
+            };
+            
+            historialSurtidos.unshift(surtidoHistorial);
+            localStorage.setItem('historialSurtidos', JSON.stringify(historialSurtidos));
+            
+            // Mostrar resultados
+            processedItems.forEach(item => {
+                const tieneNoProcesadas = item.cajasNoProcesadas > 0 || item.piezasNoProcesadas > 0;
+                
+                resultHTML += `
+                    <div class="surtido-result ${tieneNoProcesadas ? 'warning' : ''}">
+                        <strong>${item.descripcion}</strong> (${item.codigo})<br>
+                        Cantidad solicitada: ${item.cajasSolicitadas} cajas, ${item.piezasSolicitadas} piezas<br>
+                        Cantidad procesada: ${item.cajasProcesadas} cajas, ${item.piezasProcesadas} piezas<br>
+                        ${tieneNoProcesadas ? 
+                          `<span style="color: orange;">Cantidad no procesada: ${item.cajasNoProcesadas} cajas, ${item.piezasNoProcesadas} piezas (insuficiente existencias)</span><br>` : 
+                          ''}
+                        ${item.lotesUsados.length > 0 ? 
+                          `Lotes utilizados:<br>
+                           <ul>
+                             ${item.lotesUsados.map(lote => 
+                               `<li>Fecha: ${lote.fecha || 'N/A'}, Cajas: ${lote.cajasTomadas}, Piezas: ${lote.piezasTomadas}</li>`
+                             ).join('')}
+                           </ul>` : 
+                          'No se utilizaron lotes (sin existencias)'}
+                    </div>
+                `;
+            });
+            
+            if (allProcessed) {
+                resultHTML = `<div class="surtido-result">${resultHTML}</div>`;
+            } else {
+                resultHTML = `<div class="surtido-result warning">${resultHTML}</div>`;
+            }
+            
+            document.getElementById('surtidoResult').innerHTML = resultHTML;
+            
+            // Guardar cambios en localStorage
+            localStorage.setItem('products', JSON.stringify(products));
+            
+            // Actualizar la interfaz
+            renderInventory();
+            populateFamilyFilter();
+            populateFamilySelect();
+            renderDashboard();
+            populateSurtidoProductSelect();
+            
+            // Limpiar lista de surtido si todo se procesó correctamente
+            if (allProcessed) {
+                surtidoList = [];
+                renderSurtidoList();
+                destinoInput.value = '';
+            }
+            
+            // Mostrar notificación para guardar en Excel
+            showSaveNotification('Control_Caducidades.xlsx');
+        }
+        
+        // Función para exportar la lista de surtido a Excel
+        function exportSurtidoToExcel() {
+            if (surtidoList.length === 0) {
+                alert("No hay productos en la lista de surtido para exportar");
+                return;
+            }
+            
+            const destino = document.getElementById('surtidoDestino').value || 'Sin destino especificado';
+            
+            // Preparar datos para exportar
+            const dataToExport = [];
+            
+            // Encabezados
+            dataToExport.push(['Lista de Surtido', '', '', '', '']);
+            dataToExport.push(['Destino:', destino, '', '', '']);
+            dataToExport.push(['Fecha:', new Date().toLocaleDateString(), '', '', '']);
+            dataToExport.push([]);
+            dataToExport.push(['Código', 'Descripción', 'Familia', 'Cajas', 'Piezas', 'Estado']);
+            
+            // Datos de productos en surtido
+            surtidoList.forEach(item => {
+                const product = products[item.productIndex];
+                const estado = getSurtidoStatus(item.productIndex, item.cajas, item.piezas);
+                const estadoTexto = estado.includes('Suficiente') ? 'Suficiente' : 
+                                  estado.includes('Insuficiente') ? 'Insuficiente' : 'Sin existencias';
+                
+                dataToExport.push([
+                    item.codigo,
+                    item.descripcion,
+                    item.familia,
+                    item.cajas,
+                    item.piezas,
+                    estadoTexto
+                ]);
+            });
+            
+            // Crear libro de trabajo
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(dataToExport);
+            
+            // Añadir hoja al libro
+            XLSX.utils.book_append_sheet(wb, ws, 'Lista de Surtido');
+            
+            // Guardar archivo
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `Lista_Surtido_${timestamp}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+        
+        // ============================================
+        // FUNCIONES PARA EL HISTORIAL DE SURTIDO
+        // ============================================
+        
+        // Función para renderizar el historial de surtidos
+        function renderHistorialSurtido() {
+            const historialList = document.getElementById('historialSurtidoList');
+            
+            // Aplicar filtros
+            let historialFiltrado = [...historialSurtidos];
+            
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
+            const filtroDestino = document.getElementById('filtroDestino').value.toLowerCase();
+            
+            if (fechaInicio) {
+                historialFiltrado = historialFiltrado.filter(item => 
+                    new Date(item.fecha) >= new Date(fechaInicio)
+                );
+            }
+            
+            if (fechaFin) {
+                const fechaFinObj = new Date(fechaFin);
+                fechaFinObj.setHours(23, 59, 59, 999); // Incluir todo el día
+                historialFiltrado = historialFiltrado.filter(item => 
+                    new Date(item.fecha) <= fechaFinObj
+                );
+            }
+            
+            if (filtroDestino) {
+                historialFiltrado = historialFiltrado.filter(item => 
+                    item.destino.toLowerCase().includes(filtroDestino)
+                );
+            }
+            
+            if (historialFiltrado.length === 0) {
+                historialList.innerHTML = '<div class="card"><p>No se encontraron surtidos en el historial</p></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            historialFiltrado.forEach((surtido, index) => {
+                const fecha = new Date(surtido.fecha);
+                const fechaFormateada = fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString();
+                
+                html += `
+                    <div class="card">
+                        <div class="historial-header">
+                            <div class="historial-fecha">${fechaFormateada}</div>
+                            <div class="historial-destino">Destino: ${surtido.destino}</div>
+                            <div>
+                                <span class="status-badge ${surtido.completado ? 'status-ok' : 'status-warning'}">
+                                    ${surtido.completado ? 'COMPLETADO' : 'INCOMPLETO'}
+                                </span>
+                                <button class="btn" onclick="exportSurtidoIndividualToExcel(${index})">Exportar</button>
+                            </div>
+                        </div>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Descripción</th>
+                                    <th>Familia</th>
+                                    <th>Cajas Solicitadas</th>
+                                    <th>Piezas Solicitadas</th>
+                                    <th>Cajas Procesadas</th>
+                                    <th>Piezas Procesadas</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${surtido.items.map(item => `
+                                    <tr>
+                                        <td>${item.codigo}</td>
+                                        <td>${item.descripcion}</td>
+                                        <td>${item.familia}</td>
+                                        <td>${item.cajasSolicitadas}</td>
+                                        <td>${item.piezasSolicitadas}</td>
+                                        <td>${item.cajasProcesadas}</td>
+                                        <td>${item.piezasProcesadas}</td>
+                                        <td>${(item.cajasNoProcesadas > 0 || item.piezasNoProcesadas > 0) ? 
+                                            '<span style="color: orange;">Incompleto</span>' : 
+                                            '<span style="color: green;">Completo</span>'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+            
+            historialList.innerHTML = html;
+        }
+        
+        // Función para filtrar el historial de surtidos
+        function filtrarHistorialSurtido() {
+            renderHistorialSurtido();
+        }
+        
+        // Función para limpiar filtros del historial
+        function limpiarFiltrosHistorial() {
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            document.getElementById('filtroDestino').value = '';
+            renderHistorialSurtido();
+        }
+        
+        // Función para exportar el historial completo a Excel
+        function exportHistorialSurtidoToExcel() {
+            if (historialSurtidos.length === 0) {
+                alert("No hay historial de surtidos para exportar");
+                return;
+            }
+            
+            // Preparar datos para exportar
+            const dataToExport = [];
+            
+            // Encabezados
+            dataToExport.push(['Historial de Surtidos', '', '', '', '', '', '', '']);
+            dataToExport.push(['Fecha exportación:', new Date().toLocaleDateString(), '', '', '', '', '', '']);
+            dataToExport.push([]);
+            
+            // Datos de cada surtido
+            historialSurtidos.forEach((surtido, index) => {
+                const fecha = new Date(surtido.fecha);
+                const fechaFormateada = fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString();
+                
+                dataToExport.push([`Surtido #${index + 1}`]);
+                dataToExport.push(['Fecha:', fechaFormateada]);
+                dataToExport.push(['Destino:', surtido.destino]);
+                dataToExport.push(['Estado:', surtido.completado ? 'COMPLETADO' : 'INCOMPLETO']);
+                dataToExport.push([]);
+                dataToExport.push(['Código', 'Descripción', 'Familia', 'Cajas Solicitadas', 'Piezas Solicitadas', 'Cajas Procesadas', 'Piezas Procesadas', 'Estado']);
+                
+                surtido.items.forEach(item => {
+                    dataToExport.push([
+                        item.codigo,
+                        item.descripcion,
+                        item.familia,
+                        item.cajasSolicitadas,
+                        item.piezasSolicitadas,
+                        item.cajasProcesadas,
+                        item.piezasProcesadas,
+                        (item.cajasNoProcesadas > 0 || item.piezasNoProcesadas > 0) ? 'INCOMPLETO' : 'COMPLETO'
+                    ]);
+                });
+                
+                dataToExport.push([]);
+                dataToExport.push([]);
+            });
+            
+            // Crear libro de trabajo
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(dataToExport);
+            
+            // Añadir hoja al libro
+            XLSX.utils.book_append_sheet(wb, ws, 'Historial Surtidos');
+            
+            // Guardar archivo
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `Historial_Surtidos_${timestamp}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+        
+        // Función para exportar un surtido individual a Excel
+        function exportSurtidoIndividualToExcel(index) {
+            const surtido = historialSurtidos[index];
+            
+            // Preparar datos para exportar
+            const dataToExport = [];
+            
+            const fecha = new Date(surtido.fecha);
+            const fechaFormateada = fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString();
+            
+            // Encabezados
+            dataToExport.push(['Detalle de Surtido', '', '', '', '', '', '', '']);
+            dataToExport.push(['Fecha:', fechaFormateada, '', '', '', '', '', '']);
+            dataToExport.push(['Destino:', surtido.destino, '', '', '', '', '', '']);
+            dataToExport.push(['Estado:', surtido.completado ? 'COMPLETADO' : 'INCOMPLETO', '', '', '', '', '', '']);
+            dataToExport.push([]);
+            dataToExport.push(['Código', 'Descripción', 'Familia', 'Cajas Solicitadas', 'Piezas Solicitadas', 'Cajas Procesadas', 'Piezas Procesadas', 'Estado']);
+            
+            // Datos del surtido
+            surtido.items.forEach(item => {
+                dataToExport.push([
+                    item.codigo,
+                    item.descripcion,
+                    item.familia,
+                    item.cajasSolicitadas,
+                    item.piezasSolicitadas,
+                    item.cajasProcesadas,
+                    item.piezasProcesadas,
+                    (item.cajasNoProcesadas > 0 || item.piezasNoProcesadas > 0) ? 'INCOMPLETO' : 'COMPLETO'
+                ]);
+            });
+            
+            // Agregar detalles de lotes utilizados
+            dataToExport.push([]);
+            dataToExport.push(['Lotes Utilizados']);
+            dataToExport.push(['Producto', 'Fecha Lote', 'Cajas Tomadas', 'Piezas Tomadas']);
+            
+            surtido.items.forEach(item => {
+                if (item.lotesUsados && item.lotesUsados.length > 0) {
+                    item.lotesUsados.forEach(lote => {
+                        dataToExport.push([
+                            item.descripcion,
+                            lote.fecha || 'N/A',
+                            lote.cajasTomadas,
+                            lote.piezasTomadas
+                        ]);
+                    });
+                }
+            });
+            
+            // Crear libro de trabajo
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(dataToExport);
+            
+            // Añadir hoja al libro
+            XLSX.utils.book_append_sheet(wb, ws, 'Surtido Individual');
+            
+            // Guardar archivo
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `Surtido_${surtido.destino.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+</body>
+</html>

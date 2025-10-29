@@ -1,26 +1,24 @@
 // src/app/settings/page.jsx
-'use client';
+"use client";
+
+import { resetStorage } from "@/services/settingsService";
 
 export default function SettingsPage() {
-    return (
-        <section id="configuracion">
-            <h2 className="section-title">Configuración</h2>
+  const handleReset = () => {
+    if (confirm("¿Seguro que deseas borrar todos los datos?")) {
+      resetStorage();
+      alert("Datos borrados correctamente.");
+    }
+  };
 
-            <div className="card">
-                <h3>Uso de almacenamiento</h3>
-                <p>Revise cuánta información está almacenada en el sistema.</p>
-                <button className="btn btn-success">Ver uso de almacenamiento</button>
-                <div id="storageUsageResult" style={{ marginTop: '15px', fontWeight: 'bold' }}></div>
-            </div>
-
-            <div className="card">
-                <h3>Datos</h3>
-                <p><strong>Creado por:</strong> Alexis Aldo Ilizaliturri Alarid</p>
-                <p><strong>Departamento:</strong> ALFA INVENTARIOS</p>
-                <p><strong>Empresa:</strong> SUPER RIVERA</p>
-                {/* En Next.js, las imágenes en public se sirven desde la raíz */}
-                <img src="/logo-super-rivera1.jpg" alt="Logo Super Rivera" style={{ maxWidth: '300px' }} />
-            </div>
-        </section>
-    );
+  return (
+    <section>
+      <h2 className="section-title">Configuración</h2>
+      <div className="card">
+        <h3>Opciones del sistema</h3>
+        <p>Puedes limpiar todos los datos almacenados localmente (productos, surtidos e historial).</p>
+        <button className="btn btn-danger" onClick={handleReset}>Restablecer todo</button>
+      </div>
+    </section>
+  );
 }

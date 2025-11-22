@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password": "1234",
+    "active": true,
+    "isAdmin": true,
+    "permisos": {
+      "inicio": true,
+      "productos": true,
+      "surtido": true,
+      "reportes": true,
+      "historial": true,
+      "importar": true,
+      "configuracion": true
+    }
+  }
+]

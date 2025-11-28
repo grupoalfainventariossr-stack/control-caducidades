@@ -13,10 +13,10 @@ const productSchema = new mongoose.Schema({
     descripcion: { type: String, required: true },
     familia: { type: String, required: true },
     factor: { type: String, default: '' },
-    tipoProducto: { 
-        type: String, 
-        enum: ['piezas', 'granel'], 
-        default: 'piezas' 
+    tipoProducto: {
+        type: String,
+        enum: ['piezas', 'granel'],
+        default: 'piezas'
     },
     lotes: [loteSchema]
 }, {

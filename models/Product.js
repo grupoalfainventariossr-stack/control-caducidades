@@ -23,7 +23,6 @@ const productSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Índices para mejor rendimiento
 productSchema.index({ codes: 1 });
 productSchema.index({ descripcion: 'text' });
 productSchema.index({ familia: 1 });

@@ -856,7 +856,6 @@
             </div>
             <div id="loginErrorVisual" style="color:#c33; margin-top:6px; display:none;"></div>
             <div class="modal-buttons" style="margin-top:12px;">
-                <button class="btn btn-danger" onclick="handleLogout()">Salir</button>
                 <button class="btn btn-success" onclick="handleLogin()">Entrar</button>
             </div>
         </div>
@@ -2612,14 +2611,19 @@
                         </div>
                     `;
                 } else {
-                    // Formato completo: Código, Descripción, Familia, Cajas, Piezas, Fecha Caducidad, Fecha Contado, Notas
+                    // Formato completo: Código, Descripción, Familia, Factor, Tipo Producto, Cajas, Piezas, Fecha Caducidad, Fecha Contado, Notas
                     jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                        header: ['codigo', 'descripcion', 'familia', 'cajas', 'piezas', 'fechaCaducidad', 'fechaContado', 'notas']
+                        header: ['codigo', 'descripcion', 'familia', 'factor', 'tipoProducto', 'cajas', 'piezas', 'fechaCaducidad', 'fechaContado', 'notas']
                     });
 
                     // Eliminar la primera fila si son encabezados
-                    if (jsonData.length > 0 && jsonData[0].codigo === 'Código') {
-                        jsonData.shift();
+                    if (jsonData.length > 0) {
+                        const firstRow = jsonData[0];
+                        if (firstRow.codigo === 'Código' || firstRow.codigo === 'codigo' || 
+                            String(firstRow.codigo || '').trim().toLowerCase() === 'código' ||
+                            String(firstRow.codigo || '').trim().toLowerCase() === 'codigo') {
+                            jsonData.shift();
+                        }
                     }
 
                     let importedCount = 0;
@@ -2632,6 +2636,10 @@
                             const code = String(row.codigo).trim();
                             const descripcion = String(row.descripcion).trim();
                             const familia = String(row.familia).trim();
+                            const factor = String(row.factor || '').trim();
+                            const tipoProducto = String(row.tipoProducto || '').trim().toLowerCase();
+                            // Convertir "A Granel" o "granel" a 'granel', cualquier otra cosa a 'piezas'
+                            const tipoProductoNormalizado = (tipoProducto.includes('granel') || tipoProducto === 'a granel') ? 'granel' : 'piezas';
 
                             // Verificar si el producto ya existe por código
                             const existingIndex = products.findIndex(p => p.codes.includes(code));
@@ -2640,15 +2648,17 @@
                             const lote = {
                                 cajas: parseInt(row.cajas) || 0,
                                 piezas: parseFloat(row.piezas) || 0, // Permitir decimales
-                                fecha: row.fechaCaducidad || '',
-                                contado: row.fechaContado || '',
-                                notas: row.notas || ''
+                                fecha: String(row.fechaCaducidad || '').trim(),
+                                contado: String(row.fechaContado || '').trim(),
+                                notas: String(row.notas || '').trim()
                             };
 
                             if (existingIndex !== -1) {
                                 // Actualizar producto existente
                                 products[existingIndex].descripcion = descripcion;
                                 products[existingIndex].familia = familia;
+                                if (factor) products[existingIndex].factor = factor;
+                                products[existingIndex].tipoProducto = tipoProductoNormalizado;
 
                                 // Agregar lote si tiene fecha de caducidad
                                 if (lote.fecha) {
@@ -2666,6 +2676,8 @@
                                     codes: [code],
                                     descripcion: descripcion,
                                     familia: familia,
+                                    factor: factor || '',
+                                    tipoProducto: tipoProductoNormalizado,
                                     lotes: []
                                 };
 
@@ -2821,7 +2833,7 @@
         // Función para mostrar notificación de guardado
         function showSaveNotification(fileName) {
             const notification = document.getElementById('saveNotification');
-            notification.textContent = `Datos guardados exitosamente en ${fileName}`;
+            notification.textContent = `Datos guardados exitosamente`;
             notification.style.display = 'block';
 
             setTimeout(() => {
@@ -3977,24 +3989,34 @@
                 return log;
             }
 
-            function processXLSXForProductImport(rows) {
-                const products = loadProductsFromStorage();
+            async function processXLSXForProductImport(rows) {
+                let products = loadProductsFromStorage();
                 const log = [];
-                for (let r = 0; r < rows.length; r++) {
+                // Saltar la primera fila si son encabezados
+                let startRow = 0;
+                if (rows.length > 0 && rows[0] && rows[0][0] && (String(rows[0][0]).trim().toLowerCase() === 'código' || String(rows[0][0]).trim().toLowerCase() === 'codigo')) {
+                    startRow = 1;
+                }
+                
+                for (let r = startRow; r < rows.length; r++) {
                     const row = rows[r];
                     if (!row || row.length < 2) continue;
+                    // Formato: A: Código | B: Descripción | C: Familia | D: Factor | E: Tipo Producto | F: Cajas | G: Piezas | H: Fecha Caducidad | I: Fecha Contado | J: Notas
                     const code = row[0] ? String(row[0]).trim() : '';
                     const desc = row[1] ? String(row[1]).trim() : '';
-                    const factor = row[2] ? String(row[2]).trim() : '';
-                    const unit = row[4] ? String(row[4]).trim() : '';
-                    const family = row[5] ? String(row[5]).trim() : '';
-                    const cajas = row[6] ? Number(row[6]) : 0;
-                    const piezas = row[7] ? Number(row[7]) : 0;
-                    const fechaCad = row[8] ? String(row[8]).trim() : '';
-                    const fechaCont = row[9] ? String(row[9]).trim() : '';
-                    const notas = row[10] ? String(row[10]).trim() : '';
+                    const family = row[2] ? String(row[2]).trim() : '';
+                    const factor = row[3] ? String(row[3]).trim() : '';
+                    const tipoProducto = row[4] ? String(row[4]).trim() : '';
+                    const cajas = row[5] ? Number(row[5]) : 0;
+                    const piezas = row[6] ? Number(row[6]) : 0;
+                    const fechaCad = row[7] ? String(row[7]).trim() : '';
+                    const fechaCont = row[8] ? String(row[8]).trim() : '';
+                    const notas = row[9] ? String(row[9]).trim() : '';
 
                     if (!code) { log.push({ status: 'invalid', code: '', desc: desc, note: 'Sin código' }); continue; }
+
+                    // Normalizar tipo de producto
+                    const tipoProductoNormalizado = (tipoProducto.toLowerCase().includes('granel') || tipoProducto.toLowerCase() === 'a granel') ? 'granel' : 'piezas';
 
                     let existingIndex = -1;
                     for (let i = 0; i < products.length; i++) {
@@ -4006,9 +4028,9 @@
                             id: Date.now() + Math.floor(Math.random() * 1000),
                             descripcion: desc,
                             codes: [code],
-                            factor: factor,
-                            unidad: unit,
+                            factor: factor || '',
                             familia: family,
+                            tipoProducto: tipoProductoNormalizado,
                             lotes: []
                         };
                         if (cajas || piezas || fechaCad) {
@@ -4020,8 +4042,8 @@
                         const p = products[existingIndex];
                         p.descripcion = desc || p.descripcion;
                         p.factor = factor || p.factor;
-                        p.unidad = unit || p.unidad;
                         p.familia = family || p.familia;
+                        p.tipoProducto = tipoProductoNormalizado;
                         if (cajas || piezas || fechaCad) {
                             const nextLoteNum = (p.lotes && p.lotes.length) ? (Math.max(...p.lotes.map(x => Number(x.lote) || 0)) + 1) : 1;
                             p.lotes = p.lotes || [];
@@ -4031,7 +4053,16 @@
                         log.push({ status: 'updated', code: code, desc: desc });
                     }
                 }
+                // Guardar en almacenamiento local y servidor
                 saveProductsToStorage(products);
+                await saveProducts(products);
+                
+                // Actualizar la interfaz
+                if (typeof populateFamilyFilter === 'function') populateFamilyFilter();
+                if (typeof populateFamilySelect === 'function') populateFamilySelect();
+                if (typeof renderInventory === 'function') renderInventory();
+                if (typeof renderDashboard === 'function') renderDashboard();
+                
                 return log;
             }
 
@@ -4116,8 +4147,8 @@
                 block.id = 'productImportBlock';
                 block.innerHTML = `
       <div class="card">
-        <h3>Importar Productos desde Excel (A-K)</h3>
-        <p>Formato: A: Código | B: Descripción | C: Factor | D: / | E: Unidad | F: Familia | G: Cajas | H: Piezas | I: Fecha Caducidad | J: Fecha Contado | K: Notas</p>
+        <h3>Importar Productos desde Excel (A-J)</h3>
+        <p>Formato: A: Código | B: Descripción | C: Familia | D: Factor | E: Tipo Producto | F: Cajas | G: Piezas | H: Fecha Caducidad | I: Fecha Contado | J: Notas</p>
         <input type="file" id="productImportFile" accept=".xlsx" />
         <div style="margin-top:10px;">
           <button class="btn btn-success" id="btnProcessProductImport">Importar Productos</button>
@@ -4145,11 +4176,16 @@
                     if (!f) { alert('Seleccione un archivo'); return; }
                     const name = f.name.toLowerCase();
                     if (!(name.endsWith('.xlsx') || name.endsWith('.xls'))) { alert('Solo se permiten archivos .xlsx para este importador'); return; }
-                    parseXLSX(f, function (err, rows) {
+                    parseXLSX(f, async function (err, rows) {
                         if (err) { logEl.innerHTML = 'Error al leer Excel'; return; }
-                        const res = processXLSXForProductImport(rows);
-                        logEl.innerHTML = 'Importación finalizada. ' + res.length + ' filas procesadas.';
-                        showImportSummaryModal(res, 'products');
+                        try {
+                            const res = await processXLSXForProductImport(rows);
+                            logEl.innerHTML = 'Importación finalizada. ' + res.length + ' filas procesadas.';
+                            showImportSummaryModal(res, 'products');
+                        } catch (error) {
+                            logEl.innerHTML = 'Error al procesar importación: ' + error.message;
+                            console.error(error);
+                        }
                     });
                 };
             }

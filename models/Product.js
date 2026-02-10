@@ -13,17 +13,16 @@ const productSchema = new mongoose.Schema({
     descripcion: { type: String, required: true },
     familia: { type: String, required: true },
     factor: { type: String, default: '' },
-    tipoProducto: { 
-        type: String, 
-        enum: ['piezas', 'granel'], 
-        default: 'piezas' 
+    tipoProducto: {
+        type: String,
+        enum: ['piezas', 'granel'],
+        default: 'piezas'
     },
     lotes: [loteSchema]
 }, {
     timestamps: true
 });
 
-// Índices para mejor rendimiento
 productSchema.index({ codes: 1 });
 productSchema.index({ descripcion: 'text' });
 productSchema.index({ familia: 1 });
